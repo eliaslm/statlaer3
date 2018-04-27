@@ -130,7 +130,7 @@ varImpPlot(rf,pch=20)
 
 ## a) Bayes decision boundary 
 
-* Q11. What is a Bayes classifier, Bayes decision boundary and Bayes error rate? 
+* Q11. A Bayes classifier is a classification rule that classifies an observation to the class $k$ for which $Pr(Y = k | X = x)$ is the greatest. That is, we classify to the class for wich the probability is the greatest, given the observed values for x. A Bayes decision boundary consists of the points where there is an equal chance of an observation being in either of the classes. In a two class setting this corresponds to the points for which there is a 50% chance of an observation being in either class. In a classification setting the test error rate is defined as the average number of misclassifications on a test set. The Bayes classifier achieves the minimum of this error rate, and this is vallet the Bayes error rate. Since the Bayes classifier assigns an observation to the class with the highest probability, we can compute the Bayes error rate as $1 - E(max_k Pr(Y = k | X))$. Here the expectation is taken over all values of X.
 * Q12. When the Bayes decision boundary is known, do we then need a test set?
 
 ## b) Support vector machine
