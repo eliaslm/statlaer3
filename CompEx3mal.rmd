@@ -30,7 +30,7 @@ germancredit.test <- germancredit[-in.train,];dim(germancredit.test)
 
 ## 1a) Full classification tree
 
-* Q1. Explain briefly how `fulltree` is constructed. The explanation should include the words: greedy, binary, deviance, root, leaves.
+* Q1. The tree is contructed by using recursive binary splitting. This is a top-down approach because it begins at the root of the tree, successively splitting predictor space into two and two new branches as it moves down the tree. This method is also greedy because it takes the locally best choice by making the best split at each level. The terminal nodes, the nodes at the bottom of the tree, are also known as leaves. Here, the predicted class for the observation is decided. The fact that the leaves are class labels is what makes the tree a classification tree.  The deviance is a measurement of how good the fit is, basically by measuring the distance between a "perfect"" model (a model which explains all the variance in the response) and a candidate. One wishes to split in a way such that the deviance is  minimized. Popular splitting criteria for the classification tree are the Gini index and cross-entropy.
 
 ```{r,echo=FALSE,eval=FALSE}
 # construct full tree
@@ -54,9 +54,9 @@ plot(testfullroc)
 
 ## b) Pruned classification tree 
 
-* Q2. Why do we want to prune the full tree? 
-* Q3. How is amount of pruning decided in the code? 
-* Q4. Compare the the full and pruned tree classification method with focus on interpretability and the ROC curves (AUC).
+* Q2. The model includes alot of predictors. That means that the observations from a dedicated training set may be partitioned into equally many small regions, and the probability of having overfitting increases. Pruning helps avoiding this by reducing the depth of the tree and thus reducing the amount of regions.
+* Q3. The amount of pruning is decided by using cross-validation on the full tree model, in this case with 5-fold-CV. The classification error rate is used as evaluation for the cross-validation procedure. We pick the number of nodes in the model with the lowest error rate. This is the number of nodes in the pruned model.   How is amount of pruning decided in the code?
+* Q4. As the complexity of the model decreases with the pruned tree, it also becomes more interpretable. However, the AUC is lower for the pruned tree than for the full tree, and the misclassification rate has also increased.??  Compare the the full and pruned tree classification method with focus on interpretability and the ROC curves (AUC).
 
 ```{r, echo=FALSE, eval=FALSE}
 # prune the full tree
@@ -80,9 +80,9 @@ plot(testpruneroc)
 
 ## c) Bagged trees 
 
-* Q5. What is the main motivation behind bagging?
-* Q6. Explain what the importance plots show, and give your interpretation for the data set.
-* Q7. Compare the performance of bagging with the best of the full and pruned tree model above with focus on interpretability and the ROC curves (AUC).
+* Q5. The main motivation behind bagging is to decrease the amount of variance in the decision tree. What is the main motivation behind bagging?
+* Q6. Variable importance plots visualize the relative importance of each of the predictors in the model. The higher the variables are ranked, the higher is their importance. The importance is interpreted as "total decrease in node impurity over splits for the predictors". Impurity here means the presence of observations from more than a single class. For this data set we observe that "checkaccount" and "amount" are important predictors, dependent of how we calculate the importance. The least important predictor is in both cases the "foreign". In general, we see that the ranking depends on whether we use the Gini Index or "Decrease accuracy" for calculating the importance. Explain what the importance plots show, and give your interpretation for the data set.
+* Q7. Compare the performance of bagging with the best of the full and pruned tree model above with focus on interpretability and the ROC curves (AUC). ?????
 
 ```{r,echo=FALSE,eval=FALSE}
 library(randomForest)
@@ -130,8 +130,8 @@ varImpPlot(rf,pch=20)
 
 ## a) Bayes decision boundary 
 
-* Q11. A Bayes classifier is a classification rule that classifies an observation to the class $k$ for which $Pr(Y = k | X = x)$ is the greatest. That is, we classify to the class for wich the probability is the greatest, given the observed values for x. A Bayes decision boundary consists of the points where there is an equal chance of an observation being in either of the classes. In a two class setting this corresponds to the points for which there is a 50% chance of an observation being in either class. In a classification setting the test error rate is defined as the average number of misclassifications on a test set. The Bayes classifier achieves the minimum of this error rate, and this is vallet the Bayes error rate. Since the Bayes classifier assigns an observation to the class with the highest probability, we can compute the Bayes error rate as $1 - E(max_k Pr(Y = k | X))$. Here the expectation is taken over all values of X.
-* Q12. When the Bayes decision boundary is known, do we then need a test set?
+* Q11. A Bayes classifier is a classification rule that classifies an observation to the class $k$ for which $Pr(Y = k | X = x)$ is the greatest. That is, we classify to the class for wich the probability is the greatest, given the observed values for x. A Bayes decision boundary consists of the points where there is an equal chance of an observation being in either of the classes. In a two class setting this corresponds to the points for which there is a 50% chance of an observation being in either class. In a classification setting the test error rate is defined as the average number of misclassifications on a test set. The Bayes classifier achieves the minimum of this error rate, and this is vallet the Bayes error rate. Since the Bayes classifier assigns an observation to the class with the highest probability, we can compute the Bayes error rate as $1 - E(max_k Pr(Y = k | X))$. Here the expectation is taken over all values of X. The Bayes error rate minimizes the test error rate, and is therefore analogous to irreducible error.
+* Q12. If the Bayes decision boundary is known, we do not need a test set since we already know how to classify the observations in order to minimize test error. Thus we already have the best classification method.
 
 ## b) Support vector machine
 
