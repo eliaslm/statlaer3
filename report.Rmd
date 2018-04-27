@@ -1,9 +1,7 @@
-
-
 ---
-  subtitle: "TMA4268 Statistical Learning V2018"
 title: "Compulsory exercise 3: Group XX"
-author: "Håvard Bjørkøy, Oliver Byhring and Jørgen Riseth"
+subtitle: "TMA4268 Statistical Learning V2018"
+author: "H??vard Bj??rk??y, Oliver Byhring and J??rgen Riseth"
 date: "`r format(Sys.time(), '%d %B, %Y')`"
 output: #3rd letter intentation hierarchy - uncomment html_document and comment pdf_document if neede
   # html_document
