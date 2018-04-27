@@ -1,0 +1,178 @@
+---
+subtitle: "TMA4268 Statistical Learning V2018"
+title: "Compulsory exercise 3: Group XYZ"
+author: "Huglen, Huso and Myklebust"
+date: "`r format(Sys.time(), '%d %B, %Y')`"
+output: 
+  # html_document
+  pdf_document
+---
+  
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE,results="hold",message = FALSE,warning=FALSE)
+```
+
+```{r,echo=FALSE,eval=FALSE}
+library(caret) 
+#read data, divide into train and test
+germancredit = read.table("http://archive.ics.uci.edu/ml/machine-learning-databases/statlog/german/german.data")
+colnames(germancredit) = c("checkaccount", "duration", "credithistory", "purpose", "amount", "saving", "presentjob", "installmentrate", "sexstatus", "otherdebtor", "resident", "property", "age", "otherinstall", "housing", "ncredits", "job", "npeople", "telephone", "foreign", "response")
+germancredit$response = as.factor(germancredit$response) #2=bad
+table(germancredit$response)
+str(germancredit) # to see factors and integers, numerics
+
+set.seed(4268) #keep this -easier to grade work
+in.train <- createDataPartition(germancredit$response, p=0.75, list=FALSE)
+# 75% for training, one split
+germancredit.train <- germancredit[in.train,]; dim(germancredit.train)
+germancredit.test <- germancredit[-in.train,];dim(germancredit.test)
+```
+
+## 1a) Full classification tree
+
+* Q1. Explain briefly how `fulltree` is constructed. The explanation should include the words: greedy, binary, deviance, root, leaves.
+
+```{r,echo=FALSE,eval=FALSE}
+# construct full tree
+library(tree)
+library(pROC)
+fulltree=tree(response~.,germancredit.train,split="deviance")
+summary(fulltree)
+plot(fulltree)
+text(fulltree)
+print(fulltree)
+fullpred=predict(fulltree,germancredit.test,type="class")
+testres=confusionMatrix(data=fullpred,reference=germancredit.test$response)
+print(testres)
+1-sum(diag(testres$table))/(sum(testres$table))
+predfulltree = predict(fulltree,germancredit.test, type = "vector")
+testfullroc=roc(germancredit.test$response == "2", predfulltree[,2])
+auc(testfullroc)
+plot(testfullroc)
+```
+
+
+## b) Pruned classification tree 
+
+* Q2. Why do we want to prune the full tree? 
+* Q3. How is amount of pruning decided in the code? 
+* Q4. Compare the the full and pruned tree classification method with focus on interpretability and the ROC curves (AUC).
+
+```{r, echo=FALSE, eval=FALSE}
+# prune the full tree
+set.seed(4268)
+fullcv=cv.tree(fulltree,FUN=prune.misclass,K=5)
+plot(fullcv$size,fullcv$dev,type="b", xlab="Terminal nodes",ylab="misclassifications")
+print(fullcv)
+prunesize=fullcv$size[which.min(fullcv$dev)]
+prunetree=prune.misclass(fulltree,best=prunesize) 
+plot(prunetree)
+text(prunetree,pretty=1)
+predprunetree = predict(prunetree,germancredit.test, type = "class")
+prunetest=confusionMatrix(data=predprunetree,reference=germancredit.test$response)
+print(prunetest)
+1-sum(diag(prunetest$table))/(sum(prunetest$table))
+predprunetree = predict(prunetree,germancredit.test, type = "vector")
+testpruneroc=roc(germancredit.test$response == "2", predprunetree[,2])
+auc(testpruneroc)
+plot(testpruneroc)
+```
+
+## c) Bagged trees 
+
+* Q5. What is the main motivation behind bagging?
+* Q6. Explain what the importance plots show, and give your interpretation for the data set.
+* Q7. Compare the performance of bagging with the best of the full and pruned tree model above with focus on interpretability and the ROC curves (AUC).
+
+```{r,echo=FALSE,eval=FALSE}
+library(randomForest)
+set.seed(4268)
+bag=randomForest(response~., data=germancredit,subset=in.train,
+                 mtry=20,ntree=500,importance=TRUE)
+bag$confusion
+1-sum(diag(bag$confusion))/sum(bag$confusion[1:2,1:2])
+yhat.bag=predict(bag,newdata=germancredit.test)
+misclass.bag=confusionMatrix(yhat.bag,germancredit.test$response)
+print(misclass.bag)
+1-sum(diag(misclass.bag$table))/(sum(misclass.bag$table))
+predbag = predict(bag,germancredit.test, type = "prob")
+testbagroc=roc(germancredit.test$response == "2", predbag[,2])
+auc(testbagroc)
+plot(testbagroc)
+varImpPlot(bag,pch=20)
+```
+
+## d) Random forest 
+
+* Q8. The parameter `mtry=4` is used. What does this parameter mean, and what is the motivation behind choosing exactly this value?
+* Q9. The value of the parameter `mtry` is the only difference between bagging and random forest. What is the effect of choosing `mtry` to be a value less than the number of covariates?
+* Q10. Would you prefer to use bagging or random forest to classify the credit risk data?
+
+```{r,echo=FALSE,eval=FALSE}
+set.seed(4268)
+rf=randomForest(response~.,
+                 data=germancredit,subset=in.train,
+                 mtry=4,ntree=500,importance=TRUE)
+rf$confusion
+1-sum(diag(rf$confusion))/sum(rf$confusion[1:2,1:2])
+yhat.rf=predict(rf,newdata=germancredit.test)
+misclass.rf=confusionMatrix(yhat.rf,germancredit.test$response)
+print(misclass.rf)
+1-sum(diag(misclass.rf$table))/(sum(misclass.rf$table))
+predrf = predict(rf,germancredit.test, type = "prob")
+testrfroc=roc(germancredit.test$response == "2", predrf[,2])
+auc(testrfroc)
+plot(testrfroc)
+varImpPlot(rf,pch=20)
+```
+
+# Problem 2 - Nonlinear class boundaries and support vector machine
+
+## a) Bayes decision boundary 
+
+* Q11. What is a Bayes classifier, Bayes decision boundary and Bayes error rate? 
+* Q12. When the Bayes decision boundary is known, do we then need a test set?
+
+## b) Support vector machine
+
+* Q13. What is the difference between a support vector classifier and a support vector machine?
+* Q14. What are parameters for the support vector classifier and the support vector machine? How are these chosen above?
+* Q15. How would you evaluate the support vector machine decision boundary compared to the Bayes decision boundary?
+
+# Problem 3 - Unsupervised methods
+
+## a) Principal component analysis 
+
+* Q16. Explain what you see in the `biplot` in relation to the loadings for the first two principal components. 
+* Q17. Does this analysis give you any insight into the consumption of beverages and similarities between countries? 
+
+```{r,echo=FALSE,eval=FALSE}
+# reading data on consumption of different beverages for countries
+drink <- read.csv("https://www.math.ntnu.no/emner/TMA4267/2017v/drikke.TXT",sep=",",header=TRUE)
+drink <- na.omit(drink)
+# looking at correlation between consumptions
+drinkcorr=cor(drink)
+library(corrplot)
+corrplot(drinkcorr,method="circle")
+# now for PCA
+pcaS <- prcomp(drink,scale=TRUE) # scale: variables are scaled 
+pcaS$rotation
+summary(pcaS)
+biplot(pcaS,scale=0,cex=0.6) # scale=0: arrows scaled to represent the loadings
+```
+
+## b) Hierarchical clustering 
+
+* Q18. Describe how the distance between _clusters_ are defined for single, complete and average linkage. 
+* Q19. Identify which of the three dendrograms (A, B, C) correspond to the three methods single, complete and average linkage. Justify your solution.
+
+# Problem 4 - Neural networks
+
+* Q20. What is the advantage of using a non-linear activation function such as `relu`?
+* Q21. Why do we need to use a different activation function (`sigmoid`) in the output layer instead of using `relu` again? 
+* Q22. Plot the training and validation loss and accuracy for the simpler and more complex model mentioned above. How do they compare with the model with 16 hidden units?
+* Q23. Besides reducing the network's size, what other methods can be used to avoid overfitting with neural network models? Briefly describe the intuition behind each one.
+
+
+
+
