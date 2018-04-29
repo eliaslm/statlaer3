@@ -12,7 +12,7 @@ output:
 knitr::opts_chunk$set(echo = TRUE,results="hold",message = FALSE,warning=FALSE)
 ```
 
-```{r,echo=FALSE,eval=FALSE}
+```{r,echo=TRUE,eval=TRUE}
 library(caret) 
 #read data, divide into train and test
 germancredit = read.table("http://archive.ics.uci.edu/ml/machine-learning-databases/statlog/german/german.data")
@@ -30,9 +30,9 @@ germancredit.test <- germancredit[-in.train,];dim(germancredit.test)
 
 ## 1a) Full classification tree
 
-* Q1. The tree is contructed by using recursive binary splitting. This is a top-down approach because it begins at the root of the tree, successively splitting predictor space into two and two new branches as it moves down the tree. This method is also greedy because it takes the locally best choice by making the best split at each level. The terminal nodes, the nodes at the bottom of the tree, are also known as leaves. Here, the predicted class for the observation is decided. The fact that the leaves are class labels is what makes the tree a classification tree.  The deviance is a measurement of how good the fit is, basically by measuring the distance between a "perfect"" model (a model which explains all the variance in the response) and a candidate. One wishes to split in a way such that the deviance is  minimized. Popular splitting criteria for the classification tree are the Gini index and cross-entropy.
+* Q1. The tree is contructed by using recursive binary splitting. This is a top-down approach because it begins at the root of the tree, successively splitting predictor space into two and two new branches as it moves down the tree. This method is also greedy because it takes the locally best choice by making the best split at each level. The split is made based on minimizing the deviance function for the relevant nodes. The deviance is a scaled version of the cross entropy criterion, which is minimized when the probability of an observation belonging to a class is either zero or one. Thus minimizing this expression ensures that a node mostly has observations from one class. The terminal nodes, the nodes at the bottom of the tree, are also known as leaves. Here, the predicted class for the observation is decided. The fact that the leaves are class labels is what makes the tree a classification tree. 
 
-```{r,echo=FALSE,eval=FALSE}
+```{r,echo=TRUE,eval=TRUE}
 # construct full tree
 library(tree)
 library(pROC)
@@ -54,11 +54,11 @@ plot(testfullroc)
 
 ## b) Pruned classification tree 
 
-* Q2. The model includes alot of predictors. That means that the observations from a dedicated training set may be partitioned into equally many small regions, and the probability of having overfitting increases. Pruning helps avoiding this by reducing the depth of the tree and thus reducing the amount of regions.
-* Q3. The amount of pruning is decided by using cross-validation on the full tree model, in this case with 5-fold-CV. The classification error rate is used as evaluation for the cross-validation procedure. We pick the number of nodes in the model with the lowest error rate. This is the number of nodes in the pruned model.   How is amount of pruning decided in the code?
-* Q4. As the complexity of the model decreases with the pruned tree, it also becomes more interpretable. However, the AUC is lower for the pruned tree than for the full tree, and the misclassification rate has also increased.??  Compare the the full and pruned tree classification method with focus on interpretability and the ROC curves (AUC).
+* Q2. The model includes alot of predictors. That means that the observations from a training set may be partitioned into equally many small regions, and the probability of having overfitting increases. Pruning helps avoiding this by reducing the depth (and consequently the amount of predictors) of the tree and thus reducing the amount of regions.
+* Q3. The amount of pruning is decided by using cross-validation on the full tree model, in this case with 5-fold-CV. The classification error rate is used as evaluation for the cross-validation procedure. We pick the number of nodes in the model with the lowest error rate. This is the number of nodes in the pruned model.
+* Q4. As the complexity of the model decreases with the pruned tree, it also becomes more interpretable. However, the AUC is lower for the pruned tree than for the full tree, and the misclassification rate has also increased.??????
 
-```{r, echo=FALSE, eval=FALSE}
+```{r, echo=TRUE,eval=TRUE}
 # prune the full tree
 set.seed(4268)
 fullcv=cv.tree(fulltree,FUN=prune.misclass,K=5)
@@ -80,11 +80,11 @@ plot(testpruneroc)
 
 ## c) Bagged trees 
 
-* Q5. The main motivation behind bagging is to decrease the amount of variance in the decision tree. What is the main motivation behind bagging?
-* Q6. Variable importance plots visualize the relative importance of each of the predictors in the model. The higher the variables are ranked, the higher is their importance. The importance is interpreted as "total decrease in node impurity over splits for the predictors". Impurity here means the presence of observations from more than a single class. For this data set we observe that "checkaccount" and "amount" are important predictors, dependent of how we calculate the importance. The least important predictor is in both cases the "foreign". In general, we see that the ranking depends on whether we use the Gini Index or "Decrease accuracy" for calculating the importance. Explain what the importance plots show, and give your interpretation for the data set.
-* Q7. Compare the performance of bagging with the best of the full and pruned tree model above with focus on interpretability and the ROC curves (AUC). ?????
+* Q5. The main motivation behind bagging is to decrease the amount of variance in the decision tree.
+* Q6. Variable importance plots visualize the relative importance of each of the predictors in the model. The higher the variables are ranked, the higher is their importance. The importance is interpreted as "total decrease in node impurity over splits for the predictors". Impurity here means the presence of observations from more than a single class. For this data set we observe that "checkaccount" and "amount" are important predictors, dependent on how we calculate the importance. The least important predictor is in both cases the "foreign". In general, we see that the ranking depends on whether we use the Gini Index or "Decrease accuracy" for calculating the importance.
+* Q7. For baggin the AUC-value is significantly higher than for the full model. On the other hand, the interpretability is worse since bagging includes many full trees. And you have to compute the majority vote to classify an observation, while for a full tree you just have a single classification.
 
-```{r,echo=FALSE,eval=FALSE}
+```{r,echo=TRUE,eval=TRUE}
 library(randomForest)
 set.seed(4268)
 bag=randomForest(response~., data=germancredit,subset=in.train,
@@ -104,11 +104,11 @@ varImpPlot(bag,pch=20)
 
 ## d) Random forest 
 
-* Q8. The parameter `mtry=4` is used. What does this parameter mean, and what is the motivation behind choosing exactly this value?
-* Q9. The value of the parameter `mtry` is the only difference between bagging and random forest. What is the effect of choosing `mtry` to be a value less than the number of covariates?
+* Q8. The parameter mtry specifies the number of variables to be considered at each split. These are picked randomly. The motivation for using 4 as the number of variables here is that it is roughly equal to the square root of the number of predictors, which is a standard choice for classification trees.
+* Q9. A common problem with bagging is that when there are some very strong predictors, they are often chosen as top splits in the bagging trees. This results in many similar trees. Thus there is a high correlation between them. Therefore one does not achieve the desired reduction in variance. To avoid this, random forest is used. Here one only consideres a randomly picked subset, $m$, of the predictors at each split, thus forcing the trees to become less correlated. For classification trees $m$ is usually set to be approximately equal to the square root of the total number of predictors.
 * Q10. Would you prefer to use bagging or random forest to classify the credit risk data?
 
-```{r,echo=FALSE,eval=FALSE}
+```{r,echo=TRUE,eval=TRUE}
 set.seed(4268)
 rf=randomForest(response~.,
                  data=germancredit,subset=in.train,
@@ -135,9 +135,9 @@ varImpPlot(rf,pch=20)
 
 ## b) Support vector machine
 
-* Q13. What is the difference between a support vector classifier and a support vector machine?
-* Q14. What are parameters for the support vector classifier and the support vector machine? How are these chosen above?
-* Q15. How would you evaluate the support vector machine decision boundary compared to the Bayes decision boundary?
+* Q13. A support vector classifier (SVC) is a classification method that uses linear decision boundaries, but allows some degree of misclassification. Some of the observations are allowed to be on the wrong side of the margin. This is to improve the robustness of the method and improve the classification of the majority of the data. A support vector machine (SVM) is an extension of the SVC that allows for non-linear decision boundaries as well.
+* Q14. For the SVC the relevant parameters are the data points as well as the tuning parameter C, which can be interpreted as a budget for how many and much the data points are allowed to cross the margin. In the ```svm``` library we rather specify a cost, which represents the penalty for crossing the margin. The SVM has the same parameters as SVC, and additionally one has to specify which kernel to use, e.g. radial or polynomial. Furthermore, there might be extra parameters that need to be specified for the kernels, e.g. the polynomial degree or the $\gamma$ constant for the radial kernel. In the code above, these parameters are chosen using 10-fold cross-validationli
+* Q15. It looks like the SVM boundary is better than the Bayes boundary since the SVM correctly classifies several more of the black points while only misclassifying a couple more of the red points than the Bayes boundary does. This might seem a bit strange, since on average the Bayes decision boundary (when known) minimizes the test error rate. 
 
 # Problem 3 - Unsupervised methods
 
@@ -168,11 +168,91 @@ biplot(pcaS,scale=0,cex=0.6) # scale=0: arrows scaled to represent the loadings
 
 # Problem 4 - Neural networks
 
-* Q20. What is the advantage of using a non-linear activation function such as `relu`?
-* Q21. Why do we need to use a different activation function (`sigmoid`) in the output layer instead of using `relu` again? 
-* Q22. Plot the training and validation loss and accuracy for the simpler and more complex model mentioned above. How do they compare with the model with 16 hidden units?
-* Q23. Besides reducing the network's size, what other methods can be used to avoid overfitting with neural network models? Briefly describe the intuition behind each one.
+* Q20. Non-linear activation functions are used in order to capture more complex patterns in the data. If one did not use any non-linear functions the model would only be able to capture linear patterns.
+* Q21. In the final layer we need a function that allows us to classify the observation into one of the two classes. The sigmoid function is an S-shaped function that gives values between 0 and 1. The relu-function does not allow us to classify the data, since it outputs values between 0 and $\inf$.
 
+
+```{r, eval = FALSE, echo = FALSE}
+library(keras)
+# Collect data
+imdb <- dataset_imdb(num_words = 10000)
+
+train_data <- imdb$train$x
+train_labels <- imdb$train$y
+test_data <- imdb$test$x
+test_labels <- imdb$test$y
+
+# Vectorize data
+vectorize_sequences <- function(sequences, dimension = 10000) {
+  results <- matrix(0, nrow = length(sequences), ncol = dimension)
+  for (i in 1:length(sequences))
+    results[i, sequences[[i]]] <- 1                                     
+  results
+}
+
+x_train <- vectorize_sequences(train_data)
+x_test <- vectorize_sequences(test_data)
+
+y_train <- as.numeric(train_labels)
+y_test <- as.numeric(test_labels)
+
+# Defining the models (simple and complex)
+model.simple <- keras_model_sequential() %>%
+  layer_dense(units = 4, activation = "relu", input_shape = c(10000)) %>%
+  layer_dense(units = 4, activation = "relu") %>%
+  layer_dense(units = 1, activation = "sigmoid")
+
+model.complex <- keras_model_sequential() %>%
+  layer_dense(units = 32, activation = "relu", input_shape = c(10000)) %>%
+  layer_dense(units = 32, activation = "relu") %>%
+  layer_dense(units = 1, activation = "sigmoid")
+
+# Compiling the models
+model.simple %>% compile(
+  optimizer = "rmsprop",
+  loss = "binary_crossentropy",
+  metrics = c("accuracy")
+)
+
+model.complex %>% compile(
+  optimizer = "rmsprop",
+  loss = "binary_crossentropy",
+  metrics = c("accuracy")
+)
+
+# Creating validation set
+val_indices <- 1:10000
+
+x_val <- x_train[val_indices,]
+partial_x_train <- x_train[-val_indices,]
+y_val <- y_train[val_indices]
+partial_y_train <- y_train[-val_indices]
+
+# Creating the fit
+history.simple <- model.simple %>% fit(
+  partial_x_train,
+  partial_y_train,
+  epochs = 20,
+  batch_size = 512,
+  validation_data = list(x_val, y_val)
+)
+
+history.complex <- model.complex %>% fit(
+  partial_x_train,
+  partial_y_train,
+  epochs = 20,
+  batch_size = 512,
+  validation_data = list(x_val, y_val)
+)
+
+
+plot(history.simple)
+plot(history.complex)
+```
+
+
+* Q22. We see from the plots that the simpler model has about the same accuracy and loss for the training data as the one with 16 units. However, the loss for the validation data is somewhat smaller for the simpler model. Conversely, the loss for the validation data increases for the complex model with 32 units. The loss and accuracy stays roughly the same for this mode as well. The fact that the loss increases for the more complex models is probably due to overfitting. The model adapts very well to the training data, but fails to give better predictions for the validation set.
+* Q23. Besides reducing the network's size, there are three other main ways of preventing overfitting. The first action one can take is to get more data. This helps to prevent overfitting because more data points gives a better representation of the patterns in the data, and makes it more difficult for the network to interpret random noise as trends. The second action one can take is to add a weight regularizer. This penalizes the network for using large coefficient values in the weight matrix of each layer and thus prevents the network from making too complex models. The final option is to add a dropout, which is to set a number of random feature values from each layer equal to zero. The idea here is that by setting some of the ouput values to zero, some random noise is introduced and this prevents the network from picking up on insignificant patterns.
 
 
 
